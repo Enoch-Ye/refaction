@@ -83,18 +83,12 @@ Create a pull request back into this repository and describe, in as much detail 
 Good luck!
 
 ## Refactor
-**Added Multiple Layers(e.g. service, store)**
-```
-**Added Entity Framework, Code first migration**
-```
-**Added Mock Unit Test**
-```
-**Added DI Container(ninject)**
-```
-**Added AutoMapper**
-```
-**Added Swagger UI**
-```
+1. Added Multiple Layers(e.g. service, store)**
+2. Added Entity Framework, Code first migration**
+3. Added Mock Unit Test**
+4. Added DI Container(ninject)**
+5. Added AutoMapper**
+6. Added Swagger UI**
 
 ## Swagger UI
 You can access Swagger UI via URL:PortNumber/swagger.
