@@ -1,115 +1,322 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Web.Http;
+using Ninject;
+using refactor_me.Data.Models.Products;
+using refactor_me.Data.Persistence.Interfaces;
 using refactor_me.Models;
+using refactor_me.Models.ProductOptions;
+using refactor_me.Services;
 
 namespace refactor_me.Controllers
 {
-    [RoutePrefix("products")]
+    /// <summary>
+    /// ProductsController
+    /// </summary>
+    [RoutePrefix("api/products")]
     public class ProductsController : ApiController
     {
+        //service
+        private readonly IService<ProductDTO, Product, ProductOptionDTO> _service;
+
+        /// <summary>
+        /// ProductsController Constructor
+        /// </summary>
+        /// <param name="service"></param>
+        public ProductsController(IService<ProductDTO, Product, ProductOptionDTO> service)
+        {
+            _service = service;
+        }
+
+        /// <summary>
+        /// Get All
+        /// </summary>
+        /// <returns></returns>
         [Route]
         [HttpGet]
-        public Products GetAll()
+        public ApiResponse<ProductsDTO> GetAll()
         {
-            return new Products();
+            try
+            {
+                ProductsDTO productsDTO = new ProductsDTO();
+                productsDTO.Items = this._service.GetAll();
+                return new ApiResponse<ProductsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "", Result = productsDTO };
+            }
+            catch (Exception ex) {
+                return new ApiResponse<ProductsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+            }
         }
 
-        [Route]
+        /// <summary>
+        /// Search By Name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        [Route("{name}")]
         [HttpGet]
-        public Products SearchByName(string name)
+        public ApiResponse<ProductsDTO> SearchByName(string name)
         {
-            return new Products(name);
+            if (!string.IsNullOrEmpty(name))
+            {
+                try
+                {
+                    ProductsDTO productsDTO = new ProductsDTO();
+                    productsDTO.Items = this._service.RetrieveAll(d => string.Compare(name, d.Name, true) == 0);
+                    return new ApiResponse<ProductsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "", Result = productsDTO };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
-        [Route("{id}")]
+        /// <summary>
+        /// Get Product
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [Route("{id:Guid}")]
         [HttpGet]
-        public Product GetProduct(Guid id)
+        public ApiResponse<ProductDTO> GetProduct(Guid id)
         {
-            var product = new Product(id);
-            if (product.IsNew)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
-
-            return product;
+            if (id != null)
+            {
+                ProductDTO productDTO = null;
+                try
+                {
+                    productDTO = this._service.Get(id);
+                    if (productDTO != null)
+                    {
+                        return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "", Result = productDTO };
+                    }
+                    else
+                    {
+                        return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
+        /// <summary>
+        /// Create
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
         [Route]
         [HttpPost]
-        public void Create(Product product)
+        public ApiResponse<ProductDTO> Create([FromBody]ProductDTO product)
         {
-            product.Save();
+            if (product != null)
+            {
+                try
+                {
+                    this._service.Create(product);
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = ""};
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            else
+            {
+                return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
+            }
         }
 
+        /// <summary>
+        /// Update
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="product"></param>
+        /// <returns></returns>
         [Route("{id}")]
         [HttpPut]
-        public void Update(Guid id, Product product)
+        public ApiResponse<ProductDTO> Update(Guid id, [FromBody]ProductDTO product)
         {
-            var orig = new Product(id)
+            if (id != null && product != null)
             {
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                DeliveryPrice = product.DeliveryPrice
-            };
-
-            if (!orig.IsNew)
-                orig.Save();
+                try
+                {
+                    this._service.Update(id, product);
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "" };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            else
+            {
+                return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
+            }
         }
 
+        /// <summary>
+        /// Delete
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [Route("{id}")]
         [HttpDelete]
-        public void Delete(Guid id)
+        public ApiResponse<ProductDTO> Delete(Guid id)
         {
-            var product = new Product(id);
-            product.Delete();
+            if (id != null)
+            {
+                try
+                {
+                    this._service.Delete(id);
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "" };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            else
+            {
+                return new ApiResponse<ProductDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
+            }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
         [Route("{productId}/options")]
         [HttpGet]
-        public ProductOptions GetOptions(Guid productId)
+        public ApiResponse<ProductOptionsDTO> GetOptions(Guid productId)
         {
-            return new ProductOptions(productId);
+            if (productId != null)
+            {
+                try
+                {
+                    ProductOptionsDTO productOptionsDTO = new ProductOptionsDTO();
+                    ProductDTO productDTO = this._service.Get(productId);
+                    if (productDTO != null)
+                    {
+                        productOptionsDTO.Items = productDTO.ProductOptions;
+                        return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "", Result = productOptionsDTO };
+                    }
+                    else
+                    {
+                        return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
+        /// <summary>
+        /// Get Options
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [Route("{productId}/options/{id}")]
         [HttpGet]
-        public ProductOption GetOption(Guid productId, Guid id)
+        public ApiResponse<ProductOptionsDTO> GetOption(Guid productId, Guid id)
         {
-            var option = new ProductOption(id);
-            if (option.IsNew)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
-
-            return option;
+            if (productId != null && id != null)
+            {
+                try
+                {
+                    ProductOptionsDTO productOptionsDTO = new ProductOptionsDTO();
+                    productOptionsDTO.Items = this._service.GetChildren(productId, id);
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "", Result = productOptionsDTO };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
+        /// <summary>
+        /// Create Option
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <param name="option"></param>
         [Route("{productId}/options")]
         [HttpPost]
-        public void CreateOption(Guid productId, ProductOption option)
+        public ApiResponse<ProductOptionsDTO> CreateOption(Guid productId, [FromBody]ProductOptionDTO option)
         {
-            option.ProductId = productId;
-            option.Save();
+            if (productId != null && option != null)
+            {
+                try
+                {
+                    ProductOptionsDTO productOptionsDTO = new ProductOptionsDTO();
+                    this._service.CreateChild(productId, option);
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "" };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
+        /// <summary>
+        /// Update Option
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="option"></param>
         [Route("{productId}/options/{id}")]
         [HttpPut]
-        public void UpdateOption(Guid id, ProductOption option)
+        public ApiResponse<ProductOptionsDTO> UpdateOption(Guid productId, Guid id, [FromBody]ProductOptionDTO option)
         {
-            var orig = new ProductOption(id)
+            if (id != null && productId != null && option != null)
             {
-                Name = option.Name,
-                Description = option.Description
-            };
-
-            if (!orig.IsNew)
-                orig.Save();
+                try
+                {
+                    this._service.UpdateChild(productId, id, option);
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "" };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
 
+        /// <summary>
+        /// Delete Option
+        /// </summary>
+        /// <param name="id"></param>
         [Route("{productId}/options/{id}")]
         [HttpDelete]
-        public void DeleteOption(Guid id)
+        public ApiResponse<ProductOptionsDTO> DeleteOption(Guid productId, Guid id)
         {
-            var opt = new ProductOption(id);
-            opt.Delete();
+            if (id != null && productId != null)
+            {
+                try
+                {
+                    this._service.DeleteChild(productId, id);
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.OK, ErrorMessage = "" };
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.InternalServerError, ErrorMessage = ex.Message };
+                }
+            }
+            return new ApiResponse<ProductOptionsDTO>() { StatusCode = (int)HttpStatusCode.BadRequest, ErrorMessage = "" };
         }
     }
 }

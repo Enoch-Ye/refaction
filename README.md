@@ -81,3 +81,14 @@ All models are specified in the `/Models` folder, but should conform to:
 Create a pull request back into this repository and describe, in as much detail as you feel necessary, what you have done to improve this project. Include your full name in the title as it appears on your CV so we can match it back to your job application. We'll take it from there and review.
 
 Good luck!
+
+## Refactor
+**Added Multiple Layers(e.g. service, store)**
+**Added Entity Framework, Code first migration**
+**Added Mock Unit Test**
+**Added DI Container(ninject)**
+**Added AutoMapper**
+**Added Swagger UI**
+
+## Swagger UI
+You can access Swagger UI via URL:PortNumber/swagger.
